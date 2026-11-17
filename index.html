@@ -1,0 +1,2176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ludo Edukasi: Anti Judi Online & Pancasila</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top left, #f8fafc, #e2e8f0);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, .font-display {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        /* 15x15 Ludo Board Grid */
+        .ludo-board {
+            display: grid;
+            grid-template-columns: repeat(15, minmax(0, 1fr));
+            grid-template-rows: repeat(15, minmax(0, 1fr));
+            aspect-ratio: 1 / 1;
+            width: 100%;
+            max-width: 620px;
+            background-color: #ffffff;
+            border: 4px solid #1e293b;
+            border-radius: 16px;
+            box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .board-cell {
+            border: 1px solid #cbd5e1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        /* Jalur Akhir & Kotak Start Berwarna (Tegas & Jelas Terhubung ke Segitiga Finish) */
+        .tile-red {
+            background-color: #ef4444 !important;
+            border-color: #991b1b !important;
+        }
+        .tile-green {
+            background-color: #22c55e !important;
+            border-color: #166534 !important;
+        }
+        .tile-yellow {
+            background-color: #eab308 !important;
+            border-color: #854d0e !important;
+        }
+        .tile-blue {
+            background-color: #2563eb !important;
+            border-color: #1e40af !important;
+        }
+
+        /* Animasi Segitiga Penunjuk di Atas Pion Aktif */
+        @keyframes pointerBounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-7px) scale(1.15); }
+        }
+        .active-pointer {
+            animation: pointerBounce 0.7s infinite ease-in-out;
+            filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.7));
+        }
+
+        @keyframes pawnGlow {
+            0%, 100% {
+                box-shadow: 0 0 0 3px #ffffff, 0 0 12px 4px rgba(255, 255, 255, 0.95), 0 5px 10px rgba(0, 0, 0, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 0 4px #fef08a, 0 0 18px 8px rgba(250, 204, 21, 1), 0 8px 14px rgba(0, 0, 0, 0.6);
+            }
+        }
+        .active-pawn-ring {
+            animation: pawnGlow 1.1s infinite ease-in-out;
+            z-index: 40 !important;
+        }
+
+        /* Animasi Dadu Kocok */
+        @keyframes diceShake {
+            0% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(-16deg) scale(1.12); }
+            50% { transform: rotate(16deg) scale(1.15); }
+            75% { transform: rotate(-12deg) scale(1.1); }
+            100% { transform: rotate(0deg) scale(1); }
+        }
+        .dice-rolling {
+            animation: diceShake 0.4s infinite ease-in-out;
+        }
+
+        /* Animasi Splash Tantangan 3 Detik (Fade In & Out) */
+        @keyframes challengeSplashFade {
+            0% { opacity: 0; transform: scale(0.8); }
+            15% { opacity: 1; transform: scale(1.04); }
+            25% { opacity: 1; transform: scale(1); }
+            82% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.06); }
+        }
+        .splash-animate {
+            animation: challengeSplashFade 3s forwards ease-in-out;
+        }
+
+        /* Animasi Transisi Giliran Berikutnya */
+        @keyframes nextTurnPopFade {
+            0% { opacity: 0; transform: translateY(18px) scale(0.85); }
+            18% { opacity: 1; transform: translateY(0) scale(1.04); }
+            28% { opacity: 1; transform: translateY(0) scale(1); }
+            82% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-14px) scale(0.92); }
+        }
+        .next-turn-animate {
+            animation: nextTurnPopFade 1.8s forwards ease-in-out;
+        }
+
+        .mystery-card {
+            transition: transform 0.22s ease, box-shadow 0.22s ease;
+        }
+        .mystery-card:hover {
+            transform: translateY(-5px) scale(1.03);
+        }
+
+        .log-scroll::-webkit-scrollbar { width: 6px; }
+        .log-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
+        .log-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased">
+
+    <!-- Header -->
+    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 via-amber-400 to-blue-600 flex items-center justify-center text-white font-display font-bold text-xl shadow-md">
+                    L
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-xl font-bold text-slate-900 leading-tight">Ludo Edukasi: Anti Judi Online & Pancasila</h1>
+                    <p class="text-xs text-slate-500 font-medium">4 Pemain • 1 Pion • Jalur Warna ke Segitiga Finish / Rp 400.000</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="sound-toggle-btn" onclick="toggleSound()" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5 border border-slate-300" title="Suara Efek">
+                    <span id="sound-icon">🔊</span>
+                    <span class="hidden sm:inline" id="sound-label">Suara On</span>
+                </button>
+                <button onclick="openRulesModal()" class="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5 border border-indigo-200">
+                    <span>📜 Aturan</span>
+                </button>
+                <button onclick="openResetModal()" class="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5 border border-rose-200">
+                    <span>🔄 Reset</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Left / Center: Papan Ludo 15x15 -->
+        <div class="lg:col-span-7 flex flex-col items-center">
+            <!-- Legend Simbol -->
+            <div class="w-full max-w-[620px] bg-white rounded-2xl p-2.5 mb-3 shadow-sm border border-slate-200 flex flex-wrap items-center justify-around gap-2 text-xs font-semibold">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-4 h-4 rounded-full bg-slate-500 border border-slate-700 inline-block"></span>
+                    <span>Spin Wheel (50rb)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-red-600" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,3 22,20 2,20"/></svg>
+                    <span>Kuis (±50rb)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-fuchsia-600" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 22,12 12,22 2,12"/></svg>
+                    <span>Kotak Kejutan</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-amber-500" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                    <span>Bintang Aman</span>
+                </div>
+            </div>
+
+            <!-- Board Wrapper -->
+            <div class="w-full max-w-[620px] relative">
+                <div id="ludo-board" class="ludo-board"></div>
+            </div>
+        </div>
+
+        <!-- Right: Panel Kontrol, Saldo Pemain & Log -->
+        <div class="lg:col-span-5 flex flex-col gap-4">
+
+            <!-- Kartu Giliran & Kocok Dadu -->
+            <div id="turn-card" class="bg-white rounded-2xl p-4 sm:p-5 shadow-md border-2 border-red-500 transition-colors duration-300">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Giliran Sekarang</span>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span id="current-player-dot" class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
+                            <h2 id="current-player-name" class="text-xl sm:text-2xl font-bold text-slate-900">Pemain Merah</h2>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-semibold text-slate-400 block">Syarat Menang</span>
+                        <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">Rp 400rb / Finish</span>
+                    </div>
+                </div>
+
+                <div id="turn-instruction" class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-medium text-slate-700 mb-4">
+                    Kocok dadu! Dapatkan angka <strong class="text-red-600">6</strong> untuk mengeluarkan pion ke titik start.
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div id="dice-box" class="w-20 h-20 rounded-2xl bg-gradient-to-br from-white to-slate-100 border-2 border-slate-300 shadow-inner flex items-center justify-center shrink-0"></div>
+
+                    <button id="roll-dice-btn" onclick="handleRollDice()" class="flex-1 py-4 px-5 rounded-2xl bg-red-500 hover:opacity-95 active:scale-[0.98] text-white font-display font-bold text-lg shadow-lg transition disabled:opacity-45 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        <span>🎲 KOCOK DADU</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4 Kartu Saldo & Posisi Pemain -->
+            <div class="grid grid-cols-2 gap-3" id="players-scoreboard"></div>
+
+            <!-- Log Aktivitas -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-bold text-sm text-slate-800 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                        Log Aktivitas Permainan
+                    </h3>
+                    <span class="text-[11px] text-slate-400 font-medium">Terbaru di atas</span>
+                </div>
+                <div id="activity-log" class="log-scroll h-44 overflow-y-auto space-y-1.5 pr-1 text-xs"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 0: PENGATURAN SUARA KUSTOM (.MP3/.WAV UPLOAD)                   -->
+    <!-- ===================================================================== -->
+    <div id="sound-settings-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-xl font-display font-bold text-slate-900 flex items-center gap-2">
+                    <span>🎵</span> Atur File Suara & BGM (.mp3 / .wav)
+                </h3>
+                <button onclick="closeSoundSettingsModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-600">✕</button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-4 text-xs sm:text-sm text-slate-700">
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    Upload file audio pilihanmu sendiri untuk Background Music (BGM) ala lobby game maupun efek suara aksi dalam permainan.
+                </p>
+
+                <div class="space-y-3">
+                    <div class="p-3 rounded-xl bg-indigo-50 border border-indigo-200">
+                        <label class="block font-bold text-indigo-900 mb-1">🎶 Background Music (BGM Lobby)</label>
+                        <input type="file" accept="audio/*" onchange="handleAudioUpload(event, 'bgm')" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                        <span id="status-audio-bgm" class="text-[11px] text-indigo-700 mt-1 block">Status: Bawaan (Default Procedural BGM)</span>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <label class="block font-bold text-slate-800 mb-1">🎲 Suara Kocok Dadu</label>
+                        <input type="file" accept="audio/*" onchange="handleAudioUpload(event, 'dice')" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200 cursor-pointer">
+                        <span id="status-audio-dice" class="text-[11px] text-slate-400 mt-1 block">Status: Bawaan (Default)</span>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <label class="block font-bold text-slate-800 mb-1">👣 Suara Langkah Pion</label>
+                        <input type="file" accept="audio/*" onchange="handleAudioUpload(event, 'step')" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200 cursor-pointer">
+                        <span id="status-audio-step" class="text-[11px] text-slate-400 mt-1 block">Status: Bawaan (Default)</span>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <label class="block font-bold text-slate-800 mb-1">💥 Suara Zonk / Spin Wheel</label>
+                        <input type="file" accept="audio/*" onchange="handleAudioUpload(event, 'zonk')" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200 cursor-pointer">
+                        <span id="status-audio-zonk" class="text-[11px] text-slate-400 mt-1 block">Status: Bawaan (Default)</span>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <label class="block font-bold text-slate-800 mb-1">✅ Suara Kuis Benar</label>
+                        <input type="file" accept="audio/*" onchange="handleAudioUpload(event, 'quizCorrect')" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200 cursor-pointer">
+                        <span id="status-audio-quizCorrect" class="text-[11px] text-slate-400 mt-1 block">Status: Bawaan (Default)</span>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <label class="block font-bold text-slate-800 mb-1">❌ Suara Kuis Salah</label>
+                        <input type="file" accept="audio/*" onchange="handleAudioUpload(event, 'quizWrong')" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200 cursor-pointer">
+                        <span id="status-audio-quizWrong" class="text-[11px] text-slate-400 mt-1 block">Status: Bawaan (Default)</span>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <label class="block font-bold text-slate-800 mb-1">🏆 Suara Kemenangan</label>
+                        <input type="file" accept="audio/*" onchange="handleAudioUpload(event, 'victory')" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200 cursor-pointer">
+                        <span id="status-audio-victory" class="text-[11px] text-slate-400 mt-1 block">Status: Bawaan (Default)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-100 flex items-center justify-between">
+                <button onclick="resetCustomAudio()" class="py-2.5 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs">Reset Semua Suara</button>
+                <button onclick="closeSoundSettingsModal()" class="py-2.5 px-6 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm">Simpan & Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- OVERLAY ANIMASI FADE 3 DETIK SAAT BERHENTI DI TANTANGAN               -->
+    <!-- ===================================================================== -->
+    <div id="splash-overlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/75 backdrop-blur-sm p-4">
+        <div id="splash-content" class="splash-animate max-w-md w-full rounded-3xl p-8 text-center text-white shadow-2xl border-4 border-white/30">
+            <div id="splash-icon" class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-white/20 flex items-center justify-center"></div>
+            <p class="text-xs uppercase tracking-widest font-bold opacity-90 mb-1">Tantangan Ditemukan!</p>
+            <h2 id="splash-title" class="text-3xl sm:text-4xl font-display font-bold tracking-wide mb-2">SPINWHEEL</h2>
+            <p id="splash-subtitle" class="text-sm opacity-90">Mempersiapkan tantangan...</p>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- OVERLAY ANIMASI TRANSISI "GILIRAN BERIKUTNYA"                         -->
+    <!-- ===================================================================== -->
+    <div id="next-turn-overlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/65 backdrop-blur-sm p-4 pointer-events-none">
+        <div id="next-turn-content" class="next-turn-animate max-w-sm w-full rounded-3xl p-7 text-center text-white shadow-2xl border-4 border-white/40 bg-gradient-to-br from-slate-800 to-slate-900">
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 mb-3 text-2xl shadow-inner">
+                🎲
+            </div>
+            <p class="text-xs uppercase tracking-widest font-extrabold opacity-90 mb-1">Pergantian Pemain</p>
+            <h2 class="text-2xl sm:text-3xl font-display font-bold tracking-wide mb-2">GILIRAN BERIKUTNYA</h2>
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-slate-900 font-bold text-sm shadow-md">
+                <span id="next-turn-dot" class="w-3.5 h-3.5 rounded-full bg-red-500"></span>
+                <span id="next-turn-player-name">Pemain Hijau</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 1: SPIN WHEEL (BULAT ABU-ABU)                                   -->
+    <!-- ===================================================================== -->
+    <div id="spinwheel-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-center relative overflow-hidden">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold mb-2">
+                <span class="w-3 h-3 rounded-full bg-slate-500"></span> KOTAK BULAT ABU-ABU
+            </div>
+            <h3 class="text-2xl font-display font-bold text-slate-900">Spin Wheel Keberuntungan?</h3>
+            <p id="spin-player-info" class="text-xs text-slate-500 mt-1 mb-4">Saldo kamu: Rp 100.000 • Biaya 1x Putar: Rp 50.000</p>
+
+            <div class="relative w-56 h-56 mx-auto my-4">
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-20 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[22px] border-t-slate-900 drop-shadow"></div>
+                <canvas id="wheel-canvas" width="240" height="240" class="w-full h-full rounded-full shadow-lg border-4 border-slate-800"></canvas>
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div class="w-10 h-10 rounded-full bg-slate-900 border-4 border-white shadow"></div>
+                </div>
+            </div>
+
+            <div id="spin-result-box" class="hidden rounded-2xl p-4 mb-4 text-left bg-rose-50 border border-rose-200">
+                <div class="flex items-center gap-2 text-rose-700 font-bold text-base mb-1">
+                    <span>💥 HASIL: ZONK! Uang Rp 50.000 Hangus!</span>
+                </div>
+                <p class="text-xs text-rose-800 leading-relaxed">
+                    <strong>Edukasi Realistis Anti Judol:</strong> Begitulah cara kerja <em>Judi Online</em>! Hadiah besar (Rp 100rb–300rb) hanyalah umpan visual. Sistem selalu diatur agar bandar menang dan pemain pasti rugi (ZONK).
+                </p>
+            </div>
+
+            <div id="spin-choice-buttons" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">
+                <button onclick="declineSpinWheel()" class="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm transition">
+                    Menetap (Tidak Spin)
+                </button>
+                <button id="btn-execute-spin" onclick="executeSpinWheel()" class="py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold text-sm shadow-md transition disabled:opacity-40 disabled:cursor-not-allowed">
+                    Bayar Rp 50.000 & Spin
+                </button>
+            </div>
+
+            <button id="btn-spin-done" onclick="closeSpinModal()" class="hidden w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm mt-2 transition">
+                Saya Mengerti & Lanjutkan Giliran
+            </button>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 2: KUIS JUDOL & PANCASILA (SEGITIGA MERAH)                      -->
+    <!-- ===================================================================== -->
+    <div id="quiz-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+            <div class="flex items-center justify-between mb-3">
+                <span id="quiz-category-badge" class="px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">
+                    🔺 KUIS EDUKASI
+                </span>
+                <span class="text-xs font-bold text-slate-500">Benar +Rp 50rb | Salah -Rp 50rb</span>
+            </div>
+
+            <h3 id="quiz-question-text" class="text-base sm:text-lg font-bold text-slate-900 leading-snug mb-4"></h3>
+            <div id="quiz-options-container" class="space-y-2.5"></div>
+            <div id="quiz-feedback-box" class="hidden mt-4 p-3.5 rounded-2xl text-sm font-semibold"></div>
+
+            <button id="btn-quiz-continue" onclick="closeQuizModal()" class="hidden w-full mt-4 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm transition">
+                Lanjutkan Permainan
+            </button>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 3: KOTAK KEJUTAN (KETUPAT MAGENTA)                              -->
+    <!-- ===================================================================== -->
+    <div id="surprise-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 text-center">
+            <span class="inline-block px-3 py-1 rounded-full bg-fuchsia-100 text-fuchsia-700 text-xs font-bold mb-2">
+                💠 KOTAK KEJUTAN MAGENTA
+            </span>
+            <h3 class="text-2xl font-display font-bold text-slate-900">Pilih 1 Kartu Misteri!</h3>
+            <p class="text-xs text-slate-500 mt-1 mb-5">Di balik 4 kartu acak ini terdapat: Maju, Mundur, +Rp 50.000, atau -Rp 50.000.</p>
+
+            <div id="mystery-cards-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4"></div>
+
+            <div id="surprise-result-area" class="hidden rounded-2xl p-4 bg-fuchsia-50 border border-fuchsia-200 mb-4">
+                <h4 id="surprise-result-title" class="font-bold text-fuchsia-900 text-base mb-1"></h4>
+                <p id="surprise-result-desc" class="text-xs text-fuchsia-800 mb-3"></p>
+
+                <div id="surprise-dice-area" class="hidden flex-col items-center gap-2 pt-2 border-t border-fuchsia-200">
+                    <div id="surprise-dice-box" class="w-16 h-16 rounded-xl bg-white border-2 border-fuchsia-400 flex items-center justify-center shadow"></div>
+                    <button id="btn-surprise-roll" onclick="executeSurpriseDiceRoll()" class="px-5 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold text-xs shadow transition">
+                        🎲 Kocok Dadu Langkah
+                    </button>
+                </div>
+            </div>
+
+            <button id="btn-surprise-done" onclick="closeSurpriseModal()" class="hidden w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm transition">
+                Lanjutkan Permainan
+            </button>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 4: PEMENANG                                                     -->
+    <!-- ===================================================================== -->
+    <div id="victory-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/85 backdrop-blur-md p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-7 shadow-2xl border-4 border-amber-400 text-center">
+            <div class="text-5xl mb-3">🏆🎉</div>
+            <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-extrabold uppercase tracking-wider">Pemenang Permainan</span>
+            <h2 id="winner-name-text" class="text-3xl font-display font-bold text-slate-900 mt-2">Pemain Merah</h2>
+            <p id="winner-reason-text" class="text-sm font-semibold text-emerald-600 mt-1 mb-4">Berhasil mencapai saldo Rp 400.000!</p>
+
+            <div class="bg-slate-50 rounded-2xl p-4 text-left border border-slate-200 mb-5">
+                <p class="text-xs font-bold text-slate-700 mb-1">💡 Kesimpulan Edukasi:</p>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Keberhasilan diraih melalui pengetahuan, kejujuran, serta usaha yang halal sesuai nilai-nilai <strong>Pancasila</strong>—bukan melalui jalan pintas <strong>Judi Online</strong> yang pasti merugikan diri sendiri dan keluarga.
+                </p>
+            </div>
+
+            <button onclick="resetGame()" class="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-display font-bold text-base shadow-lg transition">
+                Main Lagi dari Awal
+            </button>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 5: ATURAN MAIN                                                  -->
+    <!-- ===================================================================== -->
+    <div id="rules-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/75 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-xl font-display font-bold text-slate-900">📜 Aturan Main Ludo Edukasi</h3>
+                <button onclick="closeRulesModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-600">✕</button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-3 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <strong class="text-slate-900">1. Modal & Keluar Markas:</strong> Tiap pemain mulai dengan modal <strong>Rp 100.000</strong> dan <strong>1 pion</strong>. Kocok dadu dan dapatkan angka <strong>6</strong> untuk keluar ke kotak start berwarna.
+                </div>
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <strong class="text-slate-900">2. Jalur Warna & Segitiga Finish:</strong> Setelah mengelilingi jalur putih luar, pionmu akan berbelok masuk ke <strong>jalur warna milikmu sendiri</strong> menuju <strong>Segitiga Finish</strong> di tengah papan.
+                </div>
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <strong class="text-slate-900">3. Tabrakan & Bintang Aman (⭐):</strong> Jika pionmu berhenti tepat di posisi pion lawan, lawan ter-reset kembali ke markasnya—kecuali lawan berdiri di atas <strong>Bintang yang sesuai warnanya</strong>.
+                </div>
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <strong class="text-slate-900">4. Tantangan Papan (Animasi 3 Detik):</strong><br>
+                    • <strong>Bulat Abu-abu (Spin Wheel):</strong> Pilih menetap atau bayar Rp 50.000 untuk spin (simulasi realistis anti judol: pasti ZONK).<br>
+                    • <strong>Segitiga Merah (Kuis):</strong> Jawab soal acak Judol & Pancasila (Benar +Rp 50rb, Salah -Rp 50rb).<br>
+                    • <strong>Ketupat Magenta (Kejutan):</strong> Pilih 1 dari 4 kartu acak (Maju, Mundur, +Rp 50rb, -Rp 50rb).
+                </div>
+                <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900">
+                    <strong>5. Cara Menang:</strong> Pemain pertama yang mengumpulkan <strong>Rp 400.000</strong> ATAU pionnya sampai ke <strong>Segitiga Finish</strong> sesuai warnanya dinyatakan menang!
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-100">
+                <button onclick="closeRulesModal()" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm">Siap Bermain!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 6: KONFIRMASI RESET                                             -->
+    <!-- ===================================================================== -->
+    <div id="reset-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/75 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-center">
+            <h3 class="text-xl font-display font-bold text-slate-900 mb-2">Reset Permainan?</h3>
+            <p class="text-xs text-slate-600 mb-5">Semua posisi pion dan saldo uang pemain akan dikembalikan ke awal (Rp 100.000).</p>
+            <div class="grid grid-cols-2 gap-2.5">
+                <button onclick="closeResetModal()" class="py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm">Batal</button>
+                <button onclick="confirmResetGame()" class="py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm">Ya, Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * =========================================================================
+         * 1. SISTEM EFEK SUARA KUSTOM (.MP3/.WAV) & BGM LOBBY
+         * =========================================================================
+         */
+        let soundEnabled = true;
+        let bgmEnabled = true;
+        let audioCtx = null;
+        let customAudioFiles = {};
+        try {
+            customAudioFiles = JSON.parse(localStorage.getItem('ludo_custom_audio') || '{}');
+        } catch (e) {
+            customAudioFiles = {};
+        }
+        let html5BgmAudio = null;
+        let proceduralBgmInterval = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-icon').textContent = soundEnabled ? '🔊' : '🔇';
+            document.getElementById('sound-label').textContent = soundEnabled ? 'Suara On' : 'Suara Off';
+            if (soundEnabled) {
+                SoundFX.playSynthPop(520, 0.08);
+            }
+        }
+
+        function toggleBGM() {
+            bgmEnabled = !bgmEnabled;
+            document.getElementById('bgm-icon').textContent = bgmEnabled ? '🎶' : '🔇';
+            document.getElementById('bgm-label').textContent = bgmEnabled ? 'BGM On' : 'BGM Off';
+
+            if (bgmEnabled) {
+                startBGM();
+            } else {
+                stopBGM();
+            }
+        }
+
+        function startBGM() {
+            if (!bgmEnabled) return;
+            if (customAudioFiles['bgm']) {
+                try {
+                    if (!html5BgmAudio) {
+                        html5BgmAudio = new Audio(customAudioFiles['bgm']);
+                        html5BgmAudio.loop = true;
+                        html5BgmAudio.volume = 0.35;
+                    }
+                    html5BgmAudio.play().catch(() => {});
+                    return;
+                } catch (e) {}
+            }
+
+            if (proceduralBgmInterval) return;
+            try {
+                const chords = [
+                    [261.63, 329.63, 392.00],
+                    [220.00, 261.63, 329.63],
+                    [174.61, 220.00, 261.63],
+                    [196.00, 246.94, 293.66]
+                ];
+                let chordIdx = 0;
+                proceduralBgmInterval = setInterval(() => {
+                    if (!bgmEnabled) return;
+                    try {
+                        const ctx = getAudioContext();
+                        const now = ctx.currentTime;
+                        const notes = chords[chordIdx];
+                        chordIdx = (chordIdx + 1) % chords.length;
+
+                        notes.forEach((freq, i) => {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = i === 0 ? 'sine' : 'triangle';
+                            osc.frequency.setValueAtTime(freq, now + i * 0.15);
+
+                            gain.gain.setValueAtTime(0.001, now);
+                            gain.gain.linearRampToValueAtTime(0.04, now + 0.4);
+                            gain.gain.exponentialRampToValueAtTime(0.001, now + 3.2);
+
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(now + i * 0.15);
+                            osc.stop(now + 3.5);
+                        });
+                    } catch (err) {}
+                }, 3500);
+            } catch (e) {}
+        }
+
+        function stopBGM() {
+            if (html5BgmAudio) {
+                html5BgmAudio.pause();
+            }
+            if (proceduralBgmInterval) {
+                clearInterval(proceduralBgmInterval);
+                proceduralBgmInterval = null;
+            }
+        }
+
+        function openSoundSettingsModal() {
+            ['bgm', 'dice', 'step', 'zonk', 'quizCorrect', 'quizWrong', 'victory'].forEach(key => {
+                const span = document.getElementById(`status-audio-${key}`);
+                if (customAudioFiles[key]) {
+                    span.textContent = 'Status: ✅ File Kustom Terpasang';
+                    span.className = key === 'bgm' ? 'text-[11px] text-emerald-600 font-bold mt-1 block' : 'text-[11px] text-emerald-600 font-bold mt-1 block';
+                } else {
+                    span.textContent = key === 'bgm' ? 'Status: Bawaan (Default Procedural BGM)' : 'Status: Bawaan (Default)';
+                    span.className = key === 'bgm' ? 'text-[11px] text-indigo-700 mt-1 block' : 'text-[11px] text-slate-400 mt-1 block';
+                }
+            });
+            const modal = document.getElementById('sound-settings-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSoundSettingsModal() {
+            const modal = document.getElementById('sound-settings-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function handleAudioUpload(event, key) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result;
+                customAudioFiles[key] = base64Data;
+                
+                // Coba simpan ke localStorage dengan penanganan QuotaExceededError
+                try {
+                    localStorage.setItem('ludo_custom_audio', JSON.stringify(customAudioFiles));
+                } catch (err) {
+                    // Jika localStorage penuh, tetap simpan di memori browser (in-memory) agar game tetap bisa menggunakan audio tersebut selama sesi berjalan
+                    console.warn('LocalStorage quota exceeded. Audio saved in active memory session.');
+                }
+
+                const span = document.getElementById(`status-audio-${key}`);
+                span.textContent = `Status: ✅ Terpasang (${file.name})`;
+                span.className = 'text-[11px] text-emerald-600 font-bold mt-1 block';
+
+                if (key === 'bgm') {
+                    stopBGM();
+                    html5BgmAudio = null;
+                    if (bgmEnabled) startBGM();
+                } else {
+                    playEventSound(key);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetCustomAudio() {
+            stopBGM();
+            customAudioFiles = {};
+            html5BgmAudio = null;
+            try {
+                localStorage.removeItem('ludo_custom_audio');
+            } catch (e) {}
+            ['bgm', 'dice', 'step', 'zonk', 'quizCorrect', 'quizWrong', 'victory'].forEach(key => {
+                const span = document.getElementById(`status-audio-${key}`);
+                span.textContent = key === 'bgm' ? 'Status: Bawaan (Default Procedural BGM)' : 'Status: Bawaan (Default)';
+                span.className = key === 'bgm' ? 'text-[11px] text-indigo-700 mt-1 block' : 'text-[11px] text-slate-400 mt-1 block';
+            });
+            if (bgmEnabled) startBGM();
+        }
+
+        function playEventSound(key) {
+            if (!soundEnabled) return;
+            if (customAudioFiles[key]) {
+                try {
+                    const audio = new Audio(customAudioFiles[key]);
+                    audio.play().catch(() => {});
+                    return;
+                } catch (e) {}
+            }
+            if (key === 'dice') SoundFX.synthDice();
+            else if (key === 'step') SoundFX.synthStep();
+            else if (key === 'zonk') SoundFX.synthZonk();
+            else if (key === 'quizCorrect') SoundFX.synthCorrect();
+            else if (key === 'quizWrong') SoundFX.synthWrong();
+            else if (key === 'victory') SoundFX.synthVictory();
+        }
+
+        const SoundFX = {
+            // Helper nada dasar
+            playPop(freq = 440, duration = 0.08, type = 'sine', gainVal = 0.14) {
+                if (!soundEnabled) return;
+                try {
+                    const ctx = getAudioContext();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(freq * 1.18, ctx.currentTime + duration);
+
+                    gain.gain.setValueAtTime(gainVal, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + duration);
+                } catch (e) {}
+            },
+
+            // 1. Suara kocok dadu (beradu cepat lalu jatuh)
+            diceTick(step = 0) {
+                if (!soundEnabled) return;
+                try {
+                    const ctx = getAudioContext();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    const baseFreq = 240 + (step % 4) * 55 + Math.random() * 40;
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.045);
+
+                    gain.gain.setValueAtTime(0.14, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.045);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.045);
+                } catch (e) {}
+            },
+
+            diceDrop() {
+                if (!soundEnabled) return;
+                this.playPop(180, 0.09, 'triangle', 0.18);
+                setTimeout(() => this.playPop(140, 0.07, 'sine', 0.12), 55);
+            },
+
+            // 2. Suara langkah pion per kotak (maju vs mundur)
+            pawnStep(isBackward = false, stepIndex = 0) {
+                if (!soundEnabled) return;
+                if (isBackward) {
+                    const freq = Math.max(240, 460 - stepIndex * 28);
+                    this.playPop(freq, 0.09, 'triangle', 0.14);
+                } else {
+                    const freq = Math.min(680, 420 + stepIndex * 24);
+                    this.playPop(freq, 0.08, 'sine', 0.14);
+                }
+            },
+
+            // 3. Suara pion keluar dari kandang saat dapat angka 6 (fanfare naik ceria)
+            pawnOut() {
+                if (!soundEnabled) return;
+                const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 - E5 - G5 - C6
+                notes.forEach((freq, i) => {
+                    setTimeout(() => this.playPop(freq, 0.14, 'triangle', 0.16), i * 75);
+                });
+            },
+
+            // 4. Suara pion lawan tertabrak/reset ke kandang (boing/crash turun)
+            pawnCrash() {
+                if (!soundEnabled) return;
+                try {
+                    const ctx = getAudioContext();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(420, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(85, ctx.currentTime + 0.36);
+
+                    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.36);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.36);
+                } catch (e) {}
+            },
+
+            // 5. Suara aman saat mendarat di bintang sesuai warna (chime berkilau)
+            starSafe() {
+                if (!soundEnabled) return;
+                const notes = [783.99, 987.77, 1174.66, 1567.98]; // G5 - B5 - D6 - G6
+                notes.forEach((freq, i) => {
+                    setTimeout(() => this.playPop(freq, 0.18, 'sine', 0.13), i * 65);
+                });
+            },
+
+            // 6. Suara splash tantangan muncul (whoosh / dramatic sting)
+            challengeSplash() {
+                if (!soundEnabled) return;
+                try {
+                    const ctx = getAudioContext();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(220, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.28);
+
+                    gain.gain.setValueAtTime(0.16, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.3);
+
+                    setTimeout(() => this.playPop(660, 0.22, 'sine', 0.14), 180);
+                } catch (e) {}
+            },
+
+            // 7. Suara klik jarum spinwheel berputar & suara ZONK (sad trombone)
+            wheelTick() {
+                if (!soundEnabled) return;
+                this.playPop(720, 0.035, 'square', 0.07);
+            },
+
+            zonkBuzzer() {
+                if (!soundEnabled) return;
+                const notes = [311.13, 293.66, 277.18, 261.63]; // Eb4 - D4 - Db4 - C4 (sad trombone)
+                notes.forEach((freq, i) => {
+                    setTimeout(() => {
+                        try {
+                            const ctx = getAudioContext();
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            const dur = i === 3 ? 0.55 : 0.22;
+                            osc.type = 'sawtooth';
+                            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                            if (i === 3) {
+                                osc.frequency.linearRampToValueAtTime(freq - 22, ctx.currentTime + dur);
+                            }
+                            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start();
+                            osc.stop(ctx.currentTime + dur);
+                        } catch (e) {}
+                    }, i * 230);
+                });
+            },
+
+            // 8. Suara kuis: jawaban benar & jawaban salah
+            quizCorrect() {
+                if (!soundEnabled) return;
+                this.playPop(587.33, 0.12, 'sine', 0.16); // D5
+                setTimeout(() => this.playPop(880, 0.26, 'sine', 0.18), 110); // A5
+            },
+
+            quizWrong() {
+                if (!soundEnabled) return;
+                try {
+                    const ctx = getAudioContext();
+                    [195, 155].forEach((freq, idx) => {
+                        setTimeout(() => {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'sawtooth';
+                            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                            gain.gain.setValueAtTime(0.16, ctx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start();
+                            osc.stop(ctx.currentTime + 0.22);
+                        }, idx * 160);
+                    });
+                } catch (e) {}
+            },
+
+            // 9. Suara kartu kotak kejutan dibalik/dipilih
+            cardFlip() {
+                if (!soundEnabled) return;
+                this.playPop(480, 0.06, 'triangle', 0.14);
+                setTimeout(() => this.playPop(760, 0.11, 'sine', 0.15), 60);
+            },
+
+            // 10. Suara transisi 'GILIRAN BERIKUTNYA'
+            nextTurnChime() {
+                if (!soundEnabled) return;
+                this.playPop(523.25, 0.11, 'sine', 0.13); // C5
+                setTimeout(() => this.playPop(659.25, 0.16, 'sine', 0.14), 95); // E5
+            },
+
+            // 11. Suara kemenangan / Victory fanfare meriah
+            victoryFanfare() {
+                if (!soundEnabled) return;
+                const melody = [
+                    { f: 523.25, t: 0, d: 0.13 },    // C5
+                    { f: 659.25, t: 130, d: 0.13 },  // E5
+                    { f: 783.99, t: 260, d: 0.13 },  // G5
+                    { f: 1046.5, t: 400, d: 0.28 },  // C6
+                    { f: 783.99, t: 700, d: 0.14 },  // G5
+                    { f: 1046.5, t: 860, d: 0.45 }   // C6
+                ];
+                melody.forEach(n => {
+                    setTimeout(() => this.playPop(n.f, n.d, 'triangle', 0.18), n.t);
+                });
+            }
+        };
+
+        /**
+         * =========================================================================
+         * 2. BANK SOAL JUDI ONLINE & PANCASILA (10 SOAL LENGKAP)
+         * =========================================================================
+         */
+        const QUIZ_BANK = [
+            {
+                category: "SEPUTAR JUDI ONLINE",
+                question: "1. Apa yang dimaksud dengan judi online?",
+                options: [
+                    "A. Permainan online untuk mengasah keterampilan",
+                    "B. Aktivitas mempertaruhkan uang atau sesuatu yang bernilai melalui internet dengan harapan memperoleh keuntungan",
+                    "C. Kegiatan belajar melalui internet",
+                    "D. Permainan online yang selalu memberikan hadiah"
+                ],
+                answerIndex: 1
+            },
+            {
+                category: "SEPUTAR JUDI ONLINE",
+                question: "2. Mengapa judi online dapat menyebabkan seseorang mengalami kerugian finansial?",
+                options: [
+                    "A. Karena semua pemain pasti menang",
+                    "B. Karena judi online tidak membutuhkan uang",
+                    "C. Karena pemain berisiko kehilangan uang dan terus mengeluarkan uang untuk mengejar kemenangan",
+                    "D. Karena uang yang digunakan akan selalu dikembalikan"
+                ],
+                answerIndex: 2
+            },
+            {
+                category: "SEPUTAR JUDI ONLINE",
+                question: "3. Apa dampak negatif judi online bagi pelajar?",
+                options: [
+                    "A. Meningkatkan konsentrasi belajar",
+                    "B. Membuat prestasi akademik semakin baik",
+                    "C. Membantu mengatur keuangan",
+                    "D. Mengganggu fokus belajar, menyebabkan kecanduan, dan menimbulkan masalah keuangan"
+                ],
+                answerIndex: 3
+            },
+            {
+                category: "SEPUTAR JUDI ONLINE",
+                question: "4. Jika teman kalian mengajak bermain judi online dengan alasan ingin mendapatkan uang secara cepat, apa tindakan yang paling tepat?",
+                options: [
+                    "A. Ikut mencoba karena hanya sekali",
+                    "B. Menolak ajakan tersebut dan menjelaskan risikonya",
+                    "C. Mencoba menggunakan uang sedikit terlebih dahulu",
+                    "D. Mengajak teman lainnya untuk ikut bermain"
+                ],
+                answerIndex: 1
+            },
+            {
+                category: "SEPUTAR JUDI ONLINE",
+                question: "5. Jika seseorang sudah terlanjur kecanduan judi online, apa langkah terbaik yang harus dilakukan?",
+                options: [
+                    "A. Terus bermain sampai uangnya kembali",
+                    "B. Meminjam uang agar bisa bermain lagi",
+                    "C. Berhenti bermain dan mencari bantuan dari keluarga, guru BK, atau tenaga profesional",
+                    "D. Menyembunyikan kebiasaannya dari keluarga"
+                ],
+                answerIndex: 2
+            },
+            {
+                category: "SEPUTAR PANCASILA",
+                question: "6. Perilaku judi online yang menyebabkan seseorang mengabaikan keluarga dan orang-orang di sekitarnya bertentangan dengan sila Pancasila ke berapa?",
+                options: [
+                    "A. Sila pertama",
+                    "B. Sila kedua",
+                    "C. Sila ketiga",
+                    "D. Sila kelima"
+                ],
+                answerIndex: 1
+            },
+            {
+                category: "SEPUTAR PANCASILA",
+                question: "7. Mengapa judi online bertentangan dengan nilai sila kedua Pancasila (Kemanusiaan yang Adil dan Beradab)?",
+                options: [
+                    "A. Karena judi online dapat merugikan diri sendiri dan orang lain",
+                    "B. Karena judi online merupakan kegiatan hiburan bersama",
+                    "C. Karena judi online meningkatkan rasa persaudaraan",
+                    "D. Karena judi online mengajarkan sikap disiplin"
+                ],
+                answerIndex: 0
+            },
+            {
+                category: "SEPUTAR PANCASILA",
+                question: "8. Seorang siswa menggunakan uang sekolah untuk bermain judi online hingga merugikan keluarganya. Perilaku tersebut bertentangan dengan nilai Pancasila, terutama sila ke berapa?",
+                options: [
+                    "A. Sila pertama",
+                    "B. Sila kedua",
+                    "C. Sila keempat",
+                    "D. Sila kelima"
+                ],
+                answerIndex: 3
+            },
+            {
+                category: "SEPUTAR PANCASILA",
+                question: "9. Sikap yang sesuai dengan nilai Pancasila ketika melihat teman terjerumus dalam judi online adalah ...",
+                options: [
+                    "A. Mengucilkannya dari pertemanan",
+                    "B. Membiarkannya karena bukan urusan kita",
+                    "C. Menasihati dan membantu teman tersebut agar berhenti",
+                    "D. Ikut mencoba agar bisa memahami pengalamannya"
+                ],
+                answerIndex: 2
+            },
+            {
+                category: "SEPUTAR PANCASILA",
+                question: "10. Judi online dapat membuat seseorang ingin memperoleh kekayaan secara instan tanpa usaha yang wajar. Hal ini bertentangan dengan nilai sila kelima Pancasila karena ...",
+                options: [
+                    "A. Tidak mencerminkan sikap keadilan, tanggung jawab, dan kesejahteraan bersama",
+                    "B. Mengajarkan sikap gotong royong",
+                    "C. Meningkatkan kepedulian terhadap sesama",
+                    "D. Mendorong masyarakat untuk bekerja keras"
+                ],
+                answerIndex: 0
+            }
+        ];
+
+        /**
+         * =========================================================================
+         * 3. KOORDINAT JALUR LUDO 15x15 (SESUAI FOTO REFERENSI)
+         * =========================================================================
+         */
+        // 52 kotak jalur luar searah jarum jam dimulai dari titik keluar Merah [6, 1]
+        const MAIN_TRACK = [
+            // Lengan Kiri (baris 6, kolom 1..5) -> belok ke atas
+            [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],
+            // Lengan Atas kiri (kolom 6, baris 5..0)
+            [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6],
+            // Puncak atas ke kanan
+            [0, 7], [0, 8],
+            // Lengan Atas kanan (kolom 8, baris 1..5) -> [1,8] adalah Start Hijau
+            [1, 8], [2, 8], [3, 8], [4, 8], [5, 8],
+            // Lengan Kanan atas (baris 6, kolom 9..14)
+            [6, 9], [6, 10], [6, 11], [6, 12], [6, 13], [6, 14],
+            // Ujung kanan turun
+            [7, 14], [8, 14],
+            // Lengan Kanan bawah (baris 8, kolom 13..9) -> [8,13] adalah Start Kuning
+            [8, 13], [8, 12], [8, 11], [8, 10], [8, 9],
+            // Lengan Bawah kanan (kolom 8, baris 9..14)
+            [9, 8], [10, 8], [11, 8], [12, 8], [13, 8], [14, 8],
+            // Dasar bawah ke kiri
+            [14, 7], [14, 6],
+            // Lengan Bawah kiri (kolom 6, baris 13..9) -> [13,6] adalah Start Biru
+            [13, 6], [12, 6], [11, 6], [10, 6], [9, 6],
+            // Lengan Kiri bawah (baris 8, kolom 5..0)
+            [8, 5], [8, 4], [8, 3], [8, 2], [8, 1], [8, 0],
+            // Ujung kiri naik kembali ke baris 6 kolom 0
+            [7, 0], [6, 0]
+        ];
+
+        // 5 Kotak Jalur Akhir Berwarna (Home Stretch) + 1 Segitiga Finish di tengah untuk tiap warna
+        const HOME_PATHS = {
+            red:    [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6]],     // Baris 7, Kolom 1..5 -> Segitiga Merah
+            green:  [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7]],     // Kolom 7, Baris 1..5 -> Segitiga Hijau
+            yellow: [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 8]], // Baris 7, Kolom 13..9 -> Segitiga Kuning
+            blue:   [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [8, 7]]  // Kolom 7, Baris 13..9 -> Segitiga Biru
+        };
+
+        const PLAYERS_CONFIG = [
+            {
+                id: 'red',
+                name: 'Merah',
+                startMainIndex: 0, // [6, 1]
+                colorHex: '#ef4444',
+                bgClass: 'bg-red-500',
+                borderClass: 'border-red-500',
+                lightBg: 'bg-red-50'
+            },
+            {
+                id: 'green',
+                name: 'Hijau',
+                startMainIndex: 13, // [1, 8]
+                colorHex: '#22c55e',
+                bgClass: 'bg-green-500',
+                borderClass: 'border-green-500',
+                lightBg: 'bg-green-50'
+            },
+            {
+                id: 'yellow',
+                name: 'Kuning',
+                startMainIndex: 26, // [8, 13]
+                colorHex: '#eab308',
+                bgClass: 'bg-yellow-500',
+                borderClass: 'border-yellow-500',
+                lightBg: 'bg-yellow-50'
+            },
+            {
+                id: 'blue',
+                name: 'Biru',
+                startMainIndex: 39, // [13, 6]
+                colorHex: '#2563eb',
+                bgClass: 'bg-blue-600',
+                borderClass: 'border-blue-600',
+                lightBg: 'bg-blue-50'
+            }
+        ];
+
+        // 4 Bintang Aman (sesuai posisi pada foto referensi)
+        const STAR_CELLS = {
+            "2,6": "red",     // Bintang Merah
+            "6,12": "green",  // Bintang Hijau
+            "12,8": "yellow", // Bintang Kuning
+            "8,2": "blue"     // Bintang Biru
+        };
+
+        // Logo Tantangan 2x Lipat di sepanjang jalur putih luar
+        const CHALLENGE_CELLS = {
+            // Bulat Abu-abu (Spin Wheel - 12 titik)
+            "6,3": "spin", "3,6": "spin", "0,7": "spin", "4,8": "spin",
+            "6,10": "spin", "6,14": "spin", "8,11": "spin", "11,8": "spin",
+            "14,7": "spin", "10,6": "spin", "8,4": "spin", "8,1": "spin",
+
+            // Segitiga Merah (Kuis Judol & Pancasila - 12 titik)
+            "6,4": "quiz", "0,6": "quiz", "2,8": "quiz", "5,8": "quiz",
+            "6,11": "quiz", "8,14": "quiz", "8,9": "quiz", "9,8": "quiz",
+            "14,6": "quiz", "12,6": "quiz", "8,3": "quiz", "6,0": "quiz",
+
+            // Ketupat Magenta (Kotak Kejutan - 10 titik)
+            "6,2": "surprise", "5,6": "surprise", "1,6": "surprise", "6,9": "surprise",
+            "8,12": "surprise", "8,10": "surprise", "13,8": "surprise", "14,8": "surprise",
+            "11,6": "surprise", "8,5": "surprise"
+        };
+
+        /**
+         * =========================================================================
+         * 4. STATE PERMAINAN
+         * =========================================================================
+         */
+        let gameState = {};
+
+        function initGameState() {
+            gameState = {
+                players: PLAYERS_CONFIG.map(cfg => ({
+                    ...cfg,
+                    money: 100000,
+                    steps: -1 // -1 = di markas, 0..50 = jalur luar, 51..55 = jalur akhir berwarna, 56 = Segitiga Finish
+                })),
+                currentPlayerIndex: 0,
+                diceValue: 6,
+                isRolling: false,
+                isAnimatingMove: false,
+                isModalOpen: false,
+                isTransitioningTurn: false,
+                gameOver: false,
+                usedQuizIndices: [],
+                currentQuiz: null,
+                surpriseCards: [],
+                surpriseSelectedAction: null
+            };
+        }
+
+        /**
+         * =========================================================================
+         * 5. RENDER PAPAN LUDO 15x15 DENGAN JALUR WARNA LENGKAP
+         * =========================================================================
+         */
+        function buildBoardDOM() {
+            const board = document.getElementById('ludo-board');
+            board.innerHTML = '';
+
+            for (let r = 0; r < 15; r++) {
+                for (let c = 0; c < 15; c++) {
+                    // 4 Markas Sudut (6x6)
+                    if ((r < 6 && c < 6) || (r < 6 && c > 8) || (r > 8 && c < 6) || (r > 8 && c > 8)) {
+                        if (r === 0 && c === 0) board.appendChild(createBaseElement('red', 1, 1));
+                        if (r === 0 && c === 9) board.appendChild(createBaseElement('green', 1, 10));
+                        if (r === 9 && c === 0) board.appendChild(createBaseElement('blue', 10, 1));
+                        if (r === 9 && c === 9) board.appendChild(createBaseElement('yellow', 10, 10));
+                        continue;
+                    }
+
+                    // 4 Segitiga Finish di Tengah (3x3)
+                    if (r >= 6 && r <= 8 && c >= 6 && c <= 8) {
+                        if (r === 6 && c === 6) board.appendChild(createCenterFinishElement());
+                        continue;
+                    }
+
+                    const cell = document.createElement('div');
+                    cell.className = 'board-cell bg-white';
+                    cell.id = `cell-${r}-${c}`;
+                    cell.style.gridRow = r + 1;
+                    cell.style.gridColumn = c + 1;
+
+                    // =============================================================
+                    // WARNAI JALUR AKHIR TIAP WARNA YANG TERHUBUNG KE SEGITIGA FINISH
+                    // DAN KOTAK START MASING-MASING WARNA
+                    // =============================================================
+                    // 1. Jalur Merah: Kotak Start (6,1) + Jalur Finish (7,1 s/d 7,5)
+                    if ((r === 6 && c === 1) || (r === 7 && c >= 1 && c <= 5)) {
+                        cell.classList.add('tile-red');
+                    }
+                    // 2. Jalur Hijau: Kotak Start (1,8) + Jalur Finish (1,7 s/d 5,7)
+                    if ((r === 1 && c === 8) || (c === 7 && r >= 1 && r <= 5)) {
+                        cell.classList.add('tile-green');
+                    }
+                    // 3. Jalur Kuning: Kotak Start (8,13) + Jalur Finish (7,9 s/d 7,13)
+                    if ((r === 8 && c === 13) || (r === 7 && c >= 9 && c <= 13)) {
+                        cell.classList.add('tile-yellow');
+                    }
+                    // 4. Jalur Biru: Kotak Start (13,6) + Jalur Finish (9,7 s/d 13,7)
+                    if ((r === 13 && c === 6) || (c === 7 && r >= 9 && r <= 13)) {
+                        cell.classList.add('tile-blue');
+                    }
+
+                    // Panah penunjuk arah masuk/keluar pada kotak start & ujung jalur
+                    if (r === 6 && c === 1) cell.innerHTML += `<span class="text-white text-[10px] sm:text-xs font-black drop-shadow">➔</span>`;
+                    if (r === 1 && c === 8) cell.innerHTML += `<span class="text-white text-[10px] sm:text-xs font-black drop-shadow">⬇</span>`;
+                    if (r === 8 && c === 13) cell.innerHTML += `<span class="text-white text-[10px] sm:text-xs font-black drop-shadow">⬅</span>`;
+                    if (r === 13 && c === 6) cell.innerHTML += `<span class="text-white text-[10px] sm:text-xs font-black drop-shadow">⬆</span>`;
+
+                    const key = `${r},${c}`;
+
+                    // Render Bintang Aman
+                    if (STAR_CELLS[key]) {
+                        const starColorMap = {
+                            red: '#ef4444',
+                            green: '#16a34a',
+                            yellow: '#eab308',
+                            blue: '#2563eb'
+                        };
+                        cell.innerHTML += `
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 drop-shadow-sm" viewBox="0 0 24 24" fill="${starColorMap[STAR_CELLS[key]]}" stroke="#1e293b" stroke-width="1.3">
+                                <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                            </svg>
+                        `;
+                    }
+
+                    // Render Simbol Tantangan
+                    if (CHALLENGE_CELLS[key]) {
+                        const type = CHALLENGE_CELLS[key];
+                        if (type === 'spin') {
+                            cell.innerHTML += `<div class="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-slate-500 border border-slate-700 shadow-sm"></div>`;
+                        } else if (type === 'quiz') {
+                            cell.innerHTML += `
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 drop-shadow-sm" viewBox="0 0 24 24" fill="#dc2626">
+                                    <polygon points="12,3 22,20 2,20"/>
+                                </svg>
+                            `;
+                        } else if (type === 'surprise') {
+                            cell.innerHTML += `
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 drop-shadow-sm" viewBox="0 0 24 24" fill="#c026d3">
+                                    <polygon points="12,2 22,12 12,22 2,12"/>
+                                </svg>
+                            `;
+                        }
+                    }
+
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        function createBaseElement(color, rowStart, colStart) {
+            const base = document.createElement('div');
+            const bgMap = {
+                red: 'bg-red-500',
+                green: 'bg-green-500',
+                yellow: 'bg-yellow-400',
+                blue: 'bg-blue-600'
+            };
+            base.className = `${bgMap[color]} p-3 sm:p-5 flex items-center justify-center border border-slate-800`;
+            base.style.gridRow = `${rowStart} / span 6`;
+            base.style.gridColumn = `${colStart} / span 6`;
+
+            base.innerHTML = `
+                <div class="w-full h-full bg-white rounded-2xl border-2 border-slate-800 grid grid-cols-2 gap-2 sm:gap-4 p-3 sm:p-5 place-items-center shadow-inner">
+                    <div id="home-slot-${color}" class="w-8 h-8 sm:w-11 sm:h-11 rounded-full ${bgMap[color]}/20 border-2 border-dashed border-slate-500 flex items-center justify-center relative"></div>
+                    <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-full ${bgMap[color]} border-2 border-slate-800 opacity-30"></div>
+                    <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-full ${bgMap[color]} border-2 border-slate-800 opacity-30"></div>
+                    <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-full ${bgMap[color]} border-2 border-slate-800 opacity-30"></div>
+                </div>
+            `;
+            return base;
+        }
+
+        function createCenterFinishElement() {
+            const center = document.createElement('div');
+            center.style.gridRow = '7 / span 3';
+            center.style.gridColumn = '7 / span 3';
+            center.className = 'relative border-2 border-slate-800 overflow-hidden bg-white';
+            center.innerHTML = `
+                <svg viewBox="0 0 100 100" class="w-full h-full block">
+                    <!-- Segitiga Hijau (Atas - terhubung jalur hijau kolom 7) -->
+                    <polygon points="0,0 100,0 50,50" fill="#22c55e" stroke="#1e293b" stroke-width="1.5"/>
+                    <!-- Segitiga Kuning (Kanan - terhubung jalur kuning baris 7) -->
+                    <polygon points="100,0 100,100 50,50" fill="#eab308" stroke="#1e293b" stroke-width="1.5"/>
+                    <!-- Segitiga Biru (Bawah - terhubung jalur biru kolom 7) -->
+                    <polygon points="0,100 100,100 50,50" fill="#2563eb" stroke="#1e293b" stroke-width="1.5"/>
+                    <!-- Segitiga Merah (Kiri - terhubung jalur merah baris 7) -->
+                    <polygon points="0,0 0,100 50,50" fill="#ef4444" stroke="#1e293b" stroke-width="1.5"/>
+                </svg>
+                <div id="finish-slots" class="absolute inset-0 flex items-center justify-center pointer-events-none"></div>
+            `;
+            return center;
+        }
+
+        function getPlayerGridCoord(player) {
+            if (player.steps === -1) return null;
+            if (player.steps >= 56) return HOME_PATHS[player.id][5];
+
+            if (player.steps <= 50) {
+                const mainIdx = (player.startMainIndex + player.steps) % 52;
+                return MAIN_TRACK[mainIdx];
+            } else {
+                const homeIdx = player.steps - 51; // 0..4 (5 kotak jalur warna menuju segitiga finish)
+                return HOME_PATHS[player.id][homeIdx];
+            }
+        }
+
+        function renderPawns() {
+            document.querySelectorAll('.player-pawn-el').forEach(el => el.remove());
+
+            const cellOccupancy = {};
+
+            gameState.players.forEach((player, idx) => {
+                const isTurn = idx === gameState.currentPlayerIndex && !gameState.gameOver;
+                const pawnEl = document.createElement('div');
+                pawnEl.className = 'player-pawn-el absolute flex flex-col items-center justify-center transition-all duration-200 pointer-events-none';
+
+                // Tanda Segitiga Penunjuk di Atas Pion yang sedang mendapat giliran
+                const pointerHTML = isTurn ? `
+                    <div class="active-pointer -mt-7 mb-0.5 flex flex-col items-center">
+                        <span class="px-1.5 py-0.2 rounded bg-slate-900 text-white text-[8px] font-extrabold tracking-tighter shadow">GILIRAN</span>
+                        <svg class="w-4 h-4 text-slate-900" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="12,21 2,5 22,5"/>
+                        </svg>
+                    </div>
+                ` : '';
+
+                const pawnBodyHTML = `
+                    <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-full border-[3px] border-white shadow-lg flex items-center justify-center font-display font-bold text-[10px] text-white ${isTurn ? 'active-pawn-ring scale-110' : ''}"
+                         style="background-color: ${player.colorHex}; box-shadow: 0 3px 6px rgba(0,0,0,0.45), inset 0 2px 4px rgba(255,255,255,0.5);">
+                        ${player.name[0]}
+                    </div>
+                `;
+
+                pawnEl.innerHTML = pointerHTML + pawnBodyHTML;
+
+                if (player.steps === -1) {
+                    const homeSlot = document.getElementById(`home-slot-${player.id}`);
+                    if (homeSlot) {
+                        pawnEl.style.zIndex = isTurn ? 40 : 20;
+                        homeSlot.appendChild(pawnEl);
+                    }
+                } else {
+                    const coord = getPlayerGridCoord(player);
+                    if (coord) {
+                        const cellKey = `${coord[0]}-${coord[1]}`;
+                        if (!cellOccupancy[cellKey]) cellOccupancy[cellKey] = [];
+                        cellOccupancy[cellKey].push({ pawnEl, isTurn });
+                    }
+                }
+            });
+
+            Object.entries(cellOccupancy).forEach(([cellKey, list]) => {
+                const cellEl = document.getElementById(`cell-${cellKey}`);
+                if (!cellEl) return;
+                list.forEach((item, i) => {
+                    if (list.length > 1) {
+                        const offset = (i - (list.length - 1) / 2) * 6;
+                        item.pawnEl.style.transform = `translate(${offset}px, ${offset * 0.5}px)`;
+                    }
+                    item.pawnEl.style.zIndex = item.isTurn ? 40 : 25 + i;
+                    cellEl.appendChild(item.pawnEl);
+                });
+            });
+        }
+
+        /**
+         * =========================================================================
+         * 6. RENDER UI PANEL KANAN, DADU, SCOREBOARD & LOG
+         * =========================================================================
+         */
+        function renderDiceSVG(value) {
+            const pipsMap = {
+                1: [[50, 50]],
+                2: [[28, 28], [72, 72]],
+                3: [[26, 26], [50, 50], [74, 74]],
+                4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+                5: [[26, 26], [74, 26], [50, 50], [26, 74], [74, 74]],
+                6: [[28, 24], [72, 24], [28, 50], [72, 50], [28, 76], [72, 76]]
+            };
+            const pips = pipsMap[value] || pipsMap[1];
+            const circles = pips.map(([cx, cy]) =>
+                `<circle cx="${cx}" cy="${cy}" r="9.5" fill="${value === 6 ? '#dc2626' : '#1e293b'}"/>`
+            ).join('');
+
+            return `<svg viewBox="0 0 100 100" class="w-14 h-14">${circles}</svg>`;
+        }
+
+        function formatRupiah(amount) {
+            return 'Rp ' + amount.toLocaleString('id-ID');
+        }
+
+        function updateUI() {
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+
+            const turnCard = document.getElementById('turn-card');
+            turnCard.className = `bg-white rounded-2xl p-4 sm:p-5 shadow-md border-2 ${currentPlayer.borderClass} transition-colors duration-300`;
+
+            document.getElementById('current-player-dot').className = `w-4 h-4 rounded-full ${currentPlayer.bgClass} inline-block`;
+            document.getElementById('current-player-name').textContent = `Pemain ${currentPlayer.name}`;
+
+            const rollBtn = document.getElementById('roll-dice-btn');
+            rollBtn.className = `flex-1 py-4 px-5 rounded-2xl ${currentPlayer.bgClass} hover:opacity-95 active:scale-[0.98] text-white font-display font-bold text-lg shadow-lg transition disabled:opacity-45 disabled:cursor-not-allowed flex items-center justify-center gap-2`;
+            rollBtn.disabled = gameState.isRolling || gameState.isAnimatingMove || gameState.isModalOpen || gameState.isTransitioningTurn || gameState.gameOver;
+
+            const instrEl = document.getElementById('turn-instruction');
+            if (gameState.isTransitioningTurn) {
+                instrEl.innerHTML = `Giliran <strong>${currentPlayer.name}</strong> selesai. Bersiap menuju <strong>giliran berikutnya</strong>...`;
+            } else if (currentPlayer.steps === -1) {
+                instrEl.innerHTML = `Pion <strong>${currentPlayer.name}</strong> masih di markas. Kocok dadu dan dapatkan angka <strong class="text-rose-600">6</strong> untuk keluar!`;
+            } else if (currentPlayer.steps >= 51) {
+                const sisa = 56 - currentPlayer.steps;
+                instrEl.innerHTML = `Pion <strong>${currentPlayer.name}</strong> sudah masuk <strong>Jalur Akhir ${currentPlayer.name}</strong>! Tinggal <strong>${sisa}</strong> langkah menuju Segitiga Finish!`;
+            } else {
+                const sisaLangkah = 56 - currentPlayer.steps;
+                instrEl.innerHTML = `Pion <strong>${currentPlayer.name}</strong> di jalur (${sisaLangkah} langkah menuju Segitiga Finish ${currentPlayer.name}). Kocok dadu!`;
+            }
+
+            document.getElementById('dice-box').innerHTML = renderDiceSVG(gameState.diceValue);
+
+            const sbContainer = document.getElementById('players-scoreboard');
+            sbContainer.innerHTML = gameState.players.map((p, idx) => {
+                const isTurn = idx === gameState.currentPlayerIndex && !gameState.gameOver;
+                let statusText = 'Di Markas';
+                if (p.steps >= 56) statusText = 'FINISH!';
+                else if (p.steps >= 51) statusText = `Jalur ${p.name} (${p.steps}/56)`;
+                else if (p.steps >= 0) statusText = `Langkah ${p.steps}/56`;
+
+                return `
+                    <div class="rounded-2xl p-3 border-2 transition-all ${isTurn ? `${p.borderClass} ${p.lightBg} shadow-md scale-[1.02]` : 'border-slate-200 bg-white'}">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3.5 h-3.5 rounded-full ${p.bgClass} inline-block"></span>
+                                <span class="font-bold text-sm text-slate-900">${p.name}</span>
+                            </div>
+                            ${isTurn ? `<span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-900 text-white">GILIRAN</span>` : ''}
+                        </div>
+                        <div class="text-base sm:text-lg font-display font-bold text-emerald-700">${formatRupiah(p.money)}</div>
+                        <div class="text-[11px] font-semibold text-slate-500 mt-0.5">Posisi: ${statusText}</div>
+                    </div>
+                `;
+            }).join('');
+
+            renderPawns();
+        }
+
+        function addLog(message, badgeColor = 'bg-slate-200 text-slate-700') {
+            const logContainer = document.getElementById('activity-log');
+            const entry = document.createElement('div');
+            entry.className = 'p-2 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2 leading-snug';
+            entry.innerHTML = `
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${badgeColor}">INFO</span>
+                <span class="text-slate-700">${message}</span>
+            `;
+            logContainer.prepend(entry);
+        }
+
+        /**
+         * =========================================================================
+         * 7. MEKANISME KOCOK DADU & PERGERAKAN PION
+         * =========================================================================
+         */
+        function handleRollDice() {
+            if (gameState.isRolling || gameState.isAnimatingMove || gameState.isModalOpen || gameState.isTransitioningTurn || gameState.gameOver) return;
+
+            gameState.isRolling = true;
+            updateUI();
+
+            const diceBox = document.getElementById('dice-box');
+            diceBox.classList.add('dice-rolling');
+
+            let ticks = 0;
+            const interval = setInterval(() => {
+                gameState.diceValue = Math.floor(Math.random() * 6) + 1;
+                diceBox.innerHTML = renderDiceSVG(gameState.diceValue);
+                SoundFX.diceTick(ticks);
+                ticks++;
+
+                if (ticks >= 10) {
+                    clearInterval(interval);
+                    diceBox.classList.remove('dice-rolling');
+                    SoundFX.diceDrop();
+                    gameState.isRolling = false;
+                    processDiceResult(gameState.diceValue);
+                }
+            }, 55);
+        }
+
+        async function processDiceResult(rolled) {
+            const player = gameState.players[gameState.currentPlayerIndex];
+            const badgeMap = {
+                red: 'bg-red-100 text-red-700',
+                green: 'bg-green-100 text-green-700',
+                yellow: 'bg-yellow-100 text-yellow-800',
+                blue: 'bg-blue-100 text-blue-700'
+            };
+
+            if (player.steps === -1) {
+                if (rolled === 6) {
+                    player.steps = 0;
+                    SoundFX.pawnOut();
+                    addLog(`<strong>${player.name}</strong> mendapat dadu <strong>6</strong> dan keluar ke kotak Start ${player.name}!`, badgeMap[player.id]);
+                    updateUI();
+                    checkCollisionAtCurrentPos(player);
+                    await afterLandingEvaluation(player);
+                } else {
+                    addLog(`<strong>${player.name}</strong> mendapat dadu <strong>${rolled}</strong> (butuh 6 untuk keluar markas).`, badgeMap[player.id]);
+                    nextTurn();
+                }
+                return;
+            }
+
+            addLog(`<strong>${player.name}</strong> mengocok dadu <strong>${rolled}</strong> dan melangkah maju.`, badgeMap[player.id]);
+            await movePawnSteps(player, rolled);
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function movePawnSteps(player, deltaSteps) {
+            gameState.isAnimatingMove = true;
+            updateUI();
+
+            const direction = deltaSteps >= 0 ? 1 : -1;
+            const totalMoves = Math.abs(deltaSteps);
+
+            for (let i = 0; i < totalMoves; i++) {
+                if (direction === 1) {
+                    if (player.steps < 56) {
+                        player.steps += 1;
+                    }
+                } else {
+                    if (player.steps > 0) {
+                        player.steps -= 1;
+                    }
+                }
+                SoundFX.pawnStep(direction === -1, i);
+                renderPawns();
+                await sleep(180);
+            }
+
+            gameState.isAnimatingMove = false;
+            updateUI();
+
+            // Cek jika sudah sampai di Segitiga Finish (steps === 56)
+            if (player.steps >= 56) {
+                declareWinner(player, `Berhasil membawa pion masuk ke Segitiga Finish ${player.name}!`);
+                return;
+            }
+
+            // Cek tabrakan dengan pion lawan
+            checkCollisionAtCurrentPos(player);
+
+            // Evaluasi apakah berhenti di simbol tantangan
+            await afterLandingEvaluation(player);
+        }
+
+        function checkCollisionAtCurrentPos(activePlayer) {
+            if (activePlayer.steps < 0 || activePlayer.steps > 50) return;
+
+            const activeCoord = getPlayerGridCoord(activePlayer);
+            if (!activeCoord) return;
+            const coordKey = `${activeCoord[0]},${activeCoord[1]}`;
+
+            gameState.players.forEach(other => {
+                if (other.id === activePlayer.id) return;
+                if (other.steps < 0 || other.steps > 50) return;
+
+                const otherCoord = getPlayerGridCoord(other);
+                if (otherCoord && otherCoord[0] === activeCoord[0] && otherCoord[1] === activeCoord[1]) {
+                    if (STAR_CELLS[coordKey] === other.id) {
+                        SoundFX.starSafe();
+                        addLog(`⭐ <strong>${other.name}</strong> aman di Bintang ${other.name}! Tidak bisa di-reset oleh ${activePlayer.name}.`, 'bg-amber-100 text-amber-800');
+                    } else {
+                        other.steps = -1;
+                        SoundFX.pawnCrash();
+                        addLog(`💥 <strong>${activePlayer.name}</strong> menabrak pion <strong>${other.name}</strong>! Pion ${other.name} kembali ke markas.`, 'bg-rose-100 text-rose-700');
+                        renderPawns();
+                    }
+                }
+            });
+        }
+
+        async function nextTurn() {
+            if (gameState.gameOver || gameState.isTransitioningTurn) return;
+
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            if (currentPlayer.money >= 400000) {
+                declareWinner(currentPlayer, `Berhasil mengumpulkan saldo ${formatRupiah(currentPlayer.money)}!`);
+                return;
+            }
+
+            // Kunci dadu dan diam dulu selama 2 detik setelah aksi pemain selesai
+            gameState.isTransitioningTurn = true;
+            gameState.isModalOpen = false;
+            updateUI();
+
+            await sleep(2000);
+            if (gameState.gameOver) return;
+
+            // Tentukan pemain berikutnya & tampilkan animasi "GILIRAN BERIKUTNYA"
+            const nextIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+            const upcomingPlayer = gameState.players[nextIndex];
+
+            await showNextTurnAnimation(upcomingPlayer);
+            if (gameState.gameOver) return;
+
+            // Aktifkan giliran pemain berikutnya dan buka kunci dadu
+            gameState.currentPlayerIndex = nextIndex;
+            gameState.isTransitioningTurn = false;
+            updateUI();
+        }
+
+        function showNextTurnAnimation(upcomingPlayer) {
+            return new Promise(resolve => {
+                SoundFX.nextTurnChime();
+
+                const gradientMap = {
+                    red: 'from-red-600 to-rose-700',
+                    green: 'from-green-600 to-emerald-700',
+                    yellow: 'from-amber-500 to-yellow-600',
+                    blue: 'from-blue-600 to-indigo-700'
+                };
+
+                const overlay = document.getElementById('next-turn-overlay');
+                const content = document.getElementById('next-turn-content');
+
+                // Reset kelas animasi agar selalu memutar ulang animasi dari awal
+                content.classList.remove('next-turn-animate');
+                void content.offsetWidth;
+                content.className = `next-turn-animate max-w-sm w-full rounded-3xl p-7 text-center text-white shadow-2xl border-4 border-white/40 bg-gradient-to-br ${gradientMap[upcomingPlayer.id]}`;
+
+                document.getElementById('next-turn-dot').className = `w-3.5 h-3.5 rounded-full ${upcomingPlayer.bgClass}`;
+                document.getElementById('next-turn-player-name').textContent = `Pemain ${upcomingPlayer.name}`;
+
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('flex');
+                    resolve();
+                }, 1800);
+            });
+        }
+
+        /**
+         * =========================================================================
+         * 8. EVALUASI KOTAK TANTANGAN & SPLASH ANIMASI FADE 3 DETIK
+         * =========================================================================
+         */
+        async function afterLandingEvaluation(player) {
+            if (player.money >= 400000) {
+                declareWinner(player, `Berhasil mengumpulkan saldo ${formatRupiah(player.money)}!`);
+                return;
+            }
+
+            if (player.steps >= 0 && player.steps <= 50) {
+                const coord = getPlayerGridCoord(player);
+                const key = `${coord[0]},${coord[1]}`;
+
+                // Suara chime berkilau jika mendarat di Bintang Aman sesuai warnanya
+                if (STAR_CELLS[key] === player.id) {
+                    SoundFX.starSafe();
+                    addLog(`⭐ <strong>${player.name}</strong> berhenti di Bintang ${player.name} (Zona Aman)!`, 'bg-amber-100 text-amber-800');
+                }
+
+                const challengeType = CHALLENGE_CELLS[key];
+
+                if (challengeType === 'spin') {
+                    await showChallengeSplash(
+                        'SPINWHEEL',
+                        'Berhenti di Bulat Abu-abu!',
+                        'from-slate-700 to-slate-900',
+                        `<div class="w-12 h-12 rounded-full bg-slate-400 border-4 border-white"></div>`
+                    );
+                    openSpinWheelModal();
+                    return;
+                } else if (challengeType === 'quiz') {
+                    await showChallengeSplash(
+                        'TANTANGAN KUIS',
+                        'Uji Wawasan Anti Judol & Pancasila!',
+                        'from-red-600 to-rose-700',
+                        `<svg class="w-12 h-12 text-white" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,3 22,20 2,20"/></svg>`
+                    );
+                    openQuizModal();
+                    return;
+                } else if (challengeType === 'surprise') {
+                    await showChallengeSplash(
+                        'KOTAK KEJUTAN',
+                        'Pilih 1 Kartu Misteri Acak!',
+                        'from-fuchsia-600 to-purple-700',
+                        `<svg class="w-12 h-12 text-white" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 22,12 12,22 2,12"/></svg>`
+                    );
+                    openSurpriseModal();
+                    return;
+                }
+            }
+
+            nextTurn();
+        }
+
+        function showChallengeSplash(title, subtitle, gradientClasses, iconHTML) {
+            return new Promise(resolve => {
+                gameState.isModalOpen = true;
+                updateUI();
+                SoundFX.challengeSplash();
+
+                const overlay = document.getElementById('splash-overlay');
+                const content = document.getElementById('splash-content');
+
+                content.className = `splash-animate max-w-md w-full rounded-3xl p-8 text-center text-white shadow-2xl border-4 border-white/30 bg-gradient-to-br ${gradientClasses}`;
+                document.getElementById('splash-icon').innerHTML = iconHTML;
+                document.getElementById('splash-title').textContent = title;
+                document.getElementById('splash-subtitle').textContent = subtitle;
+
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('flex');
+                    resolve();
+                }, 3000);
+            });
+        }
+
+        /**
+         * =========================================================================
+         * 9. LOGIKA SPIN WHEEL (PASTI ZONK - EDUKASI ANTI JUDOL)
+         * =========================================================================
+         */
+        let currentWheelRotation = 0;
+
+        function drawSpinWheel(rotationDeg = 0) {
+            const canvas = document.getElementById('wheel-canvas');
+            const ctx = canvas.getContext('2d');
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const radius = cx - 4;
+
+            const segments = [
+                { label: 'Rp 100.000', color: '#10b981' },
+                { label: 'Rp 200.000', color: '#3b82f6' },
+                { label: 'Rp 300.000', color: '#f59e0b' },
+                { label: 'ZONK!', color: '#ef4444' }
+            ];
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate((rotationDeg * Math.PI) / 180);
+
+            const arc = (2 * Math.PI) / segments.length;
+
+            segments.forEach((seg, i) => {
+                const startAngle = i * arc;
+                const endAngle = startAngle + arc;
+
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = seg.color;
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                ctx.save();
+                ctx.rotate(startAngle + arc / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 15px Fredoka, sans-serif';
+                ctx.fillText(seg.label, radius - 16, 5);
+                ctx.restore();
+            });
+
+            ctx.restore();
+        }
+
+        function openSpinWheelModal() {
+            const player = gameState.players[gameState.currentPlayerIndex];
+            document.getElementById('spin-player-info').textContent =
+                `Pemain ${player.name} • Saldo: ${formatRupiah(player.money)} • Biaya Spin: Rp 50.000`;
+
+            document.getElementById('spin-result-box').classList.add('hidden');
+            document.getElementById('spin-choice-buttons').classList.remove('hidden');
+            document.getElementById('btn-spin-done').classList.add('hidden');
+
+            const spinBtn = document.getElementById('btn-execute-spin');
+            spinBtn.disabled = player.money < 50000;
+            spinBtn.textContent = player.money >= 50000 ? 'Bayar Rp 50.000 & Spin' : 'Saldo Kurang (< 50rb)';
+
+            currentWheelRotation = 0;
+            drawSpinWheel(0);
+
+            const modal = document.getElementById('spinwheel-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function declineSpinWheel() {
+            const player = gameState.players[gameState.currentPlayerIndex];
+            addLog(`🛡️ <strong>${player.name}</strong> memilih <strong>Menetap</strong> & menolak godaan Spin Wheel! Uang tetap aman.`, 'bg-emerald-100 text-emerald-700');
+            closeSpinModal();
+        }
+
+        function executeSpinWheel() {
+            const player = gameState.players[gameState.currentPlayerIndex];
+            if (player.money < 50000) return;
+
+            player.money -= 50000;
+            updateUI();
+
+            document.getElementById('spin-choice-buttons').classList.add('hidden');
+
+            const targetMod = 315; // Pusat segmen ZONK tepat di bawah jarum atas (270 deg)
+            const totalSpin = 360 * 6 + targetMod;
+            const duration = 3200;
+            const startTime = performance.now();
+            let lastSectorTick = -1;
+
+            function animateWheel(now) {
+                const elapsed = now - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                currentWheelRotation = easeOut * totalSpin;
+                drawSpinWheel(currentWheelRotation);
+
+                // Bunyi klik jarum roda berputar tiap melewati batas segmen (makin melambat alami)
+                const currentSector = Math.floor(currentWheelRotation / 45);
+                if (currentSector !== lastSectorTick) {
+                    lastSectorTick = currentSector;
+                    SoundFX.wheelTick();
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateWheel);
+                } else {
+                    SoundFX.zonkBuzzer();
+                    addLog(`💸 <strong>${player.name}</strong> membayar Rp 50.000 untuk Spin Wheel dan mendapat <strong>ZONK!</strong>`, 'bg-rose-100 text-rose-700');
+                    document.getElementById('spin-result-box').classList.remove('hidden');
+                    document.getElementById('btn-spin-done').classList.remove('hidden');
+                }
+            }
+
+            requestAnimationFrame(animateWheel);
+        }
+
+        function closeSpinModal() {
+            const modal = document.getElementById('spinwheel-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            nextTurn();
+        }
+
+        /**
+         * =========================================================================
+         * 10. LOGIKA KUIS JUDOL & PANCASILA (SEGITIGA MERAH)
+         * =========================================================================
+         */
+        function getRandomQuestion() {
+            if (gameState.usedQuizIndices.length >= QUIZ_BANK.length) {
+                gameState.usedQuizIndices = [];
+            }
+            const available = QUIZ_BANK.map((_, i) => i).filter(i => !gameState.usedQuizIndices.includes(i));
+            const chosenIndex = available[Math.floor(Math.random() * available.length)];
+            gameState.usedQuizIndices.push(chosenIndex);
+            return QUIZ_BANK[chosenIndex];
+        }
+
+        function openQuizModal() {
+            const q = getRandomQuestion();
+            gameState.currentQuiz = q;
+
+            document.getElementById('quiz-category-badge').textContent = `🔺 ${q.category}`;
+            document.getElementById('quiz-question-text').textContent = q.question;
+            document.getElementById('quiz-feedback-box').classList.add('hidden');
+            document.getElementById('btn-quiz-continue').classList.add('hidden');
+
+            const optionsContainer = document.getElementById('quiz-options-container');
+            optionsContainer.innerHTML = q.options.map((optText, idx) => `
+                <button onclick="submitQuizAnswer(${idx})" id="quiz-opt-${idx}"
+                    class="w-full text-left p-3.5 rounded-2xl border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/50 font-medium text-xs sm:text-sm text-slate-800 transition">
+                    ${optText}
+                </button>
+            `).join('');
+
+            const modal = document.getElementById('quiz-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function submitQuizAnswer(selectedIndex) {
+            const q = gameState.currentQuiz;
+            const player = gameState.players[gameState.currentPlayerIndex];
+            const isCorrect = selectedIndex === q.answerIndex;
+
+            q.options.forEach((_, idx) => {
+                const btn = document.getElementById(`quiz-opt-${idx}`);
+                btn.disabled = true;
+                btn.classList.remove('hover:border-indigo-400', 'hover:bg-indigo-50/50');
+
+                if (idx === q.answerIndex) {
+                    btn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-900', 'font-bold');
+                } else if (idx === selectedIndex && !isCorrect) {
+                    btn.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-900');
+                } else {
+                    btn.classList.add('opacity-60');
+                }
+            });
+
+            const feedbackBox = document.getElementById('quiz-feedback-box');
+            feedbackBox.classList.remove('hidden');
+
+            if (isCorrect) {
+                player.money += 50000;
+                SoundFX.quizCorrect();
+                feedbackBox.className = 'mt-4 p-3.5 rounded-2xl text-sm font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800';
+                feedbackBox.innerHTML = `✅ <strong>Jawaban Benar!</strong> Saldo <strong>${player.name}</strong> bertambah <strong>+Rp 50.000</strong> (Sekarang: ${formatRupiah(player.money)}).`;
+                addLog(`✅ <strong>${player.name}</strong> menjawab kuis dengan BENAR (+Rp 50.000)!`, 'bg-emerald-100 text-emerald-700');
+            } else {
+                player.money = Math.max(0, player.money - 50000);
+                SoundFX.quizWrong();
+                feedbackBox.className = 'mt-4 p-3.5 rounded-2xl text-sm font-semibold bg-rose-50 border border-rose-200 text-rose-800';
+                feedbackBox.innerHTML = `❌ <strong>Jawaban Kurang Tepat!</strong> Saldo <strong>${player.name}</strong> berkurang <strong>-Rp 50.000</strong> (Sekarang: ${formatRupiah(player.money)}).`;
+                addLog(`❌ <strong>${player.name}</strong> salah menjawab kuis (-Rp 50.000).`, 'bg-rose-100 text-rose-700');
+            }
+
+            updateUI();
+            document.getElementById('btn-quiz-continue').classList.remove('hidden');
+        }
+
+        function closeQuizModal() {
+            const modal = document.getElementById('quiz-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            nextTurn();
+        }
+
+        /**
+         * =========================================================================
+         * 11. LOGIKA KOTAK KEJUTAN (KETUPAT MAGENTA - 4 KARTU MISTERI ACAK)
+         * =========================================================================
+         */
+        function openSurpriseModal() {
+            const actions = [
+                { type: 'FORWARD', label: 'MAJU', icon: '🚀', desc: 'Kocok dadu 1x untuk melangkah maju!' },
+                { type: 'BACKWARD', label: 'MUNDUR', icon: '⏪', desc: 'Kocok dadu 1x untuk melangkah mundur!' },
+                { type: 'ADD_MONEY', label: '+Rp 50.000', icon: '💰', desc: 'Selamat! Kamu mendapat bonus uang Rp 50.000!' },
+                { type: 'SUB_MONEY', label: '-Rp 50.000', icon: '📉', desc: 'Yah! Uangmu berkurang sebesar Rp 50.000.' }
+            ];
+
+            for (let i = actions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [actions[i], actions[j]] = [actions[j], actions[i]];
+            }
+            gameState.surpriseCards = actions;
+            gameState.surpriseSelectedAction = null;
+
+            document.getElementById('surprise-result-area').classList.add('hidden');
+            document.getElementById('surprise-dice-area').classList.add('hidden');
+            document.getElementById('surprise-dice-area').classList.remove('flex');
+            document.getElementById('btn-surprise-done').classList.add('hidden');
+
+            const grid = document.getElementById('mystery-cards-grid');
+            grid.innerHTML = actions.map((_, idx) => `
+                <button onclick="selectMysteryCard(${idx})" id="mystery-card-${idx}"
+                    class="mystery-card aspect-[3/4] rounded-2xl bg-gradient-to-br from-fuchsia-600 to-purple-800 border-2 border-fuchsia-300 shadow-lg flex flex-col items-center justify-center text-white p-2 cursor-pointer">
+                    <span class="text-4xl font-display font-bold drop-shadow">?</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider mt-1 opacity-80">Kartu ${idx + 1}</span>
+                </button>
+            `).join('');
+
+            const modal = document.getElementById('surprise-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function selectMysteryCard(cardIdx) {
+            if (gameState.surpriseSelectedAction) return;
+
+            SoundFX.cardFlip();
+            const chosen = gameState.surpriseCards[cardIdx];
+            gameState.surpriseSelectedAction = chosen;
+            const player = gameState.players[gameState.currentPlayerIndex];
+
+            gameState.surpriseCards.forEach((card, idx) => {
+                const btn = document.getElementById(`mystery-card-${idx}`);
+                btn.disabled = true;
+                btn.classList.remove('mystery-card', 'from-fuchsia-600', 'to-purple-800', 'text-white');
+
+                if (idx === cardIdx) {
+                    btn.classList.add('bg-amber-100', 'border-amber-500', 'text-slate-900', 'ring-4', 'ring-amber-300');
+                } else {
+                    btn.classList.add('bg-slate-100', 'border-slate-300', 'text-slate-500', 'opacity-65');
+                }
+
+                btn.innerHTML = `
+                    <span class="text-2xl mb-1">${card.icon}</span>
+                    <span class="text-xs font-extrabold leading-tight">${card.label}</span>
+                `;
+            });
+
+            const resArea = document.getElementById('surprise-result-area');
+            resArea.classList.remove('hidden');
+            document.getElementById('surprise-result-title').textContent = `${chosen.icon} Kamu Mendapat Kartu: ${chosen.label}`;
+            document.getElementById('surprise-result-desc').textContent = chosen.desc;
+
+            if (chosen.type === 'ADD_MONEY') {
+                player.money += 50000;
+                setTimeout(() => SoundFX.quizCorrect(), 140);
+                addLog(`💠 <strong>${player.name}</strong> membuka Kartu Kejutan: <strong>+Rp 50.000</strong>!`, 'bg-fuchsia-100 text-fuchsia-700');
+                updateUI();
+                document.getElementById('btn-surprise-done').classList.remove('hidden');
+            } else if (chosen.type === 'SUB_MONEY') {
+                player.money = Math.max(0, player.money - 50000);
+                setTimeout(() => SoundFX.quizWrong(), 140);
+                addLog(`💠 <strong>${player.name}</strong> membuka Kartu Kejutan: <strong>-Rp 50.000</strong>.`, 'bg-fuchsia-100 text-fuchsia-700');
+                updateUI();
+                document.getElementById('btn-surprise-done').classList.remove('hidden');
+            } else {
+                const diceArea = document.getElementById('surprise-dice-area');
+                diceArea.classList.remove('hidden');
+                diceArea.classList.add('flex');
+                document.getElementById('surprise-dice-box').innerHTML = renderDiceSVG(1);
+                const rollBtn = document.getElementById('btn-surprise-roll');
+                rollBtn.disabled = false;
+                rollBtn.classList.remove('hidden');
+            }
+        }
+
+        function executeSurpriseDiceRoll() {
+            const rollBtn = document.getElementById('btn-surprise-roll');
+            rollBtn.disabled = true;
+
+            const box = document.getElementById('surprise-dice-box');
+            box.classList.add('dice-rolling');
+
+            let ticks = 0;
+            let rolled = 1;
+            const interval = setInterval(() => {
+                rolled = Math.floor(Math.random() * 6) + 1;
+                box.innerHTML = renderDiceSVG(rolled);
+                SoundFX.diceTick(ticks);
+                ticks++;
+
+                if (ticks >= 10) {
+                    clearInterval(interval);
+                    box.classList.remove('dice-rolling');
+                    SoundFX.diceDrop();
+                    rollBtn.classList.add('hidden');
+                    applySurpriseMovement(rolled);
+                }
+            }, 55);
+        }
+
+        async function applySurpriseMovement(stepsRolled) {
+            const player = gameState.players[gameState.currentPlayerIndex];
+            const isForward = gameState.surpriseSelectedAction.type === 'FORWARD';
+            const delta = isForward ? stepsRolled : -stepsRolled;
+
+            addLog(`💠 Kartu Kejutan: <strong>${player.name}</strong> ${isForward ? 'MAJU' : 'MUNDUR'} <strong>${stepsRolled}</strong> langkah!`, 'bg-fuchsia-100 text-fuchsia-700');
+
+            const modal = document.getElementById('surprise-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+
+            await movePawnSteps(player, delta);
+        }
+
+        function closeSurpriseModal() {
+            const modal = document.getElementById('surprise-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            nextTurn();
+        }
+
+        /**
+         * =========================================================================
+         * 12. KEMENANGAN, ATURAN & RESET GAME
+         * =========================================================================
+         */
+        function declareWinner(player, reasonText) {
+            gameState.gameOver = true;
+            updateUI();
+            SoundFX.victoryFanfare();
+
+            addLog(`🏆 <strong>PEMENANG: Pemain ${player.name}!</strong> (${reasonText})`, 'bg-amber-200 text-amber-900');
+
+            document.getElementById('winner-name-text').textContent = `Pemain ${player.name}`;
+            document.getElementById('winner-reason-text').textContent = reasonText;
+
+            const modal = document.getElementById('victory-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function openRulesModal() {
+            const modal = document.getElementById('rules-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeRulesModal() {
+            const modal = document.getElementById('rules-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function openResetModal() {
+            const modal = document.getElementById('reset-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeResetModal() {
+            const modal = document.getElementById('reset-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmResetGame() {
+            closeResetModal();
+            resetGame();
+        }
+
+        function resetGame() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            document.getElementById('victory-modal').classList.remove('flex');
+            document.getElementById('activity-log').innerHTML = '';
+
+            initGameState();
+            updateUI();
+            addLog('Permainan baru dimulai! Setiap pemain dibekali modal <strong>Rp 100.000</strong>.', 'bg-indigo-100 text-indigo-700');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            buildBoardDOM();
+            initGameState();
+            updateUI();
+            addLog('Selamat datang di <strong>Ludo Edukasi Anti Judol & Pancasila</strong>! Giliran pertama: <strong>Merah</strong>.', 'bg-indigo-100 text-indigo-700');
+
+            document.body.addEventListener('click', () => {
+                if (bgmEnabled && !proceduralBgmInterval && (!html5BgmAudio || html5BgmAudio.paused)) {
+                    startBGM();
+                }
+            }, { once: true });
+        });
+    </script>
+</body>
+</html>
